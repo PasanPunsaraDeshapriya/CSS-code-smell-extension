@@ -11,31 +11,35 @@
     "Formatters"
   ],
   "main": "./out/extension.js",
-"activationEvents": [
-  "onCommand:css-smell-detect.analyze",
-  "onCommand:css-smell-detect.optimize",
-  "onCommand:css-smell-detect.quickFix"
-],
-"contributes": {
-  "commands": [
-    {
-      "command": "css-smell-detect.analyze",
-      "title": "Analyze CSS for Smells",
-      "category": "CSS Smell Tools"
-    },
-    {
-      "command": "css-smell-detect.optimize",
-      "title": "Optimize CSS (Combine Shorthand Rules)",
-      "category": "CSS Smell Tools"
-    },
-    {
-      "command": "css-smell-detect.quickFix",
-      "title": "Quick Fix for Common Smells",
-      "category": "CSS Smell Tools"
-    }
-  ]
-}
-,
+  "activationEvents": [
+    "onCommand:css-smell-detect.analyze",
+    "onCommand:css-smell-detect.optimize",
+    "onCommand:css-smell-detect.quickFix"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "css-smell-detect.analyze",
+        "title": "Analyze CSS for Smells",
+        "category": "code scent"
+      },
+      {
+        "command": "css-smell-detect.optimize",
+        "title": "Optimize CSS (Combine Shorthand Rules)",
+        "category": "code scent"
+      },
+      {
+        "command": "css-smell-detect.quickFix",
+        "title": "Quick Fix for Common Smells",
+        "category": "code scent"
+      },
+      {
+        "command": "css-smell-detect.toggleRealtime",
+        "title": "Toggle Real-time CSS Analysis",
+        "category": "code scent"
+      }
+    ]
+  },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
