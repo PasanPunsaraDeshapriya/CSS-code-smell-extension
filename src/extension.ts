@@ -1,481 +1,456 @@
-
-// import * as vscode from 'vscode';
-// import axios from 'axios';
-
-// export function activate(context: vscode.ExtensionContext) {
-//     console.log("✅ CSS Smell Detector Activated");
-//     console.log(" hello");
-    
-//     let disposable = vscode.commands.registerCommand('css-smell-detect.analyze', async () => {
-//         console.log("🔍 Running Analysis Command");
-
-//         const editor = vscode.window.activeTextEditor;
-//         if (!editor) {
-//             vscode.window.showErrorMessage("No CSS file open.");
-//             console.error("❌ No active editor found!");
-//             return;
-//         }
-
-//         const document = editor.document;
-//         const cssCode = document.getText();
-
-//         console.log("📂 Extracted CSS Code:", cssCode.substring(0, 100) + "...");
-
-//         try {
-//             console.log("🌍 Sending request to API...");
-//             const response = await axios.post('http://127.0.0.1:5000/predict', { css_code: cssCode });
-
-//             console.log("✅ API Response:", response.data);
-
-//             if (!response.data || !response.data.smells || !response.data.features) {
-//                 vscode.window.showErrorMessage("API response is invalid.");
-//                 console.error("❌ API returned unexpected response:", response.data);
-//                 return;
-//             }
-
-//             const prediction = response.data.prediction;
-//             const smells = response.data.smells || {};
-//             const features = response.data.features || {};
-
-//             let smellMessages = Object.entries(smells)
-//                 .map(([smell, count]) => `${smell}: ${count} occurrences`)
-//                 .join('\n');
-
-//             vscode.window.showInformationMessage(`Predicted Smell Level: ${prediction}\n\nDetected Smells:\n${smellMessages}`);
-
-//             highlightSmells(editor, smells, features);
-
-//         } catch (error) {
-//             vscode.window.showErrorMessage("Error connecting to API.");
-//             console.error("❌ API Request Failed:", error);
-//         }
-//     });
-
-//     // Register the command
-//     context.subscriptions.push(disposable);
-
-//     // Listen for document changes and saves
-//     context.subscriptions.push(
-//         vscode.workspace.onDidChangeTextDocument((event) => {
-//             if (event.document.languageId === 'css') {
-//                 console.log("📜 CSS Document Changed:", event.document.fileName);
-//                 handleDocumentChange(event);
-//             }
-//         })
-//     );
-
-//     context.subscriptions.push(
-//         vscode.workspace.onDidSaveTextDocument((document) => {
-//             if (document.languageId === 'css') {
-//                 console.log("💾 CSS Document Saved:", document.fileName);
-//                 handleDocumentSave(document);
-//             }
-//         })
-//     );
-// }
-
-
-// // **Real-Time CSS Analysis (Debounced)**
-// let typingTimer: NodeJS.Timeout | null = null;
-// async function handleDocumentChange(event: vscode.TextDocumentChangeEvent) {
-//     const editor = vscode.window.activeTextEditor;
-//     if (!editor || editor.document.languageId !== 'css') return;
-
-//     const document = editor.document;
-//     const cssCode = document.getText();
-
-//     if (!cssCode.trim()) return;
-
-//     console.log("✍️ CSS Code Detected:", cssCode.substring(0, 50) + "...");
-
-//     // **Debounce Mechanism for Real-Time Analysis**
-//     if (typingTimer) clearTimeout(typingTimer);
-//     typingTimer = setTimeout(async () => {
-//         console.log("🚀 Real-Time API Request Triggered...");
-//         await analyzeCSSCode(editor, cssCode);
-//     }, 500); // Adjust delay for responsiveness (lower = faster response)
-// }
-
-// // **Auto-Save Detection**
-// async function handleDocumentSave(document: vscode.TextDocument) {
-//     if (document.languageId !== 'css') return;
-
-//     const editor = vscode.window.activeTextEditor;
-//     if (!editor) return;
-
-//     const cssCode = document.getText();
-//     console.log("💾 Auto-Save Triggered, Analyzing CSS...");
-//     await analyzeCSSCode(editor, cssCode);
-// }
-
-
-// async function analyzeCSSCode(editor: vscode.TextEditor, cssCode: string) {
-//     try {
-//         const startTime = Date.now(); // Start time ⏱️
-
-//         const response = await axios.post('http://127.0.0.1:5000/predict', { css_code: cssCode });
-
-//         const endTime = Date.now(); // End time ⏱️
-//         const responseTime = endTime - startTime; // Calculate response time
-
-//         console.log(`✅ API Response Time: ${responseTime}ms`);
-
-//         if (!response.data || !response.data.smells || !response.data.features) {
-//             vscode.window.showErrorMessage("API response is invalid.");
-//             return;
-//         }
-
-//         console.log("✅ API Response Received:", response.data);
-
-//         const smells = response.data.smells || {};
-//         const features = response.data.features || {};
-
-//         vscode.window.showInformationMessage(`Predicted Smell Level: ${response.data.prediction}\nResponse Time: ${responseTime}ms`);
-
-//         highlightSmells(editor, smells, features);
-//     } catch (error) {
-//         console.error("❌ API Request Failed:", error);
-//     }
-// }
-
-
-// // **Highlight Detected CSS Smells**
-// function highlightSmells(editor: vscode.TextEditor, smells: any, features: any) {
-//     const decorationTypes: { [key: string]: vscode.TextEditorDecorationType } = {
-//         excessive_nesting: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 0, 0, 0.07)' }),
-//         excessive_specificity: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 166, 0, 0.17)' }),
-//         num_important: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 255, 0, 0.16)' }),
-//         browser_specific_properties: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(14, 255, 14, 0.11)' }),
-//         animation_usage: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(0, 0, 255, 0.15)' }),
-//         unused_selectors: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(128, 0, 128, 0.5)' }),
-//         universal_selectors: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(76, 0, 130, 0.2)' }),
-//         duplicate_selectors: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 20, 147, 0.3)' }), // 💖 Pink
-//         long_selectors: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(128, 128, 128, 0.3)' }), // ⚪ Gray
-//         excessive_zindex: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(139, 0, 139, 0.3)' }), // 💜 Dark Purple
-//         excessive_font_sizes: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 105, 180, 0.3)' }) // 🎀 Light Pink
-//     };
-
-//     let decorations: { [key: string]: vscode.Range[] } = {};
-//     for (let key in decorationTypes) {
-//         decorations[key] = [];
-//     }
-
-//     for (let i = 0; i < editor.document.lineCount; i++) {
-//         const line = editor.document.lineAt(i);
-//         const text = line.text;
-
-//         if (text.includes('{') && features.excessive_nesting > 5) {
-//             decorations["excessive_nesting"].push(line.range);
-//         }
-//         if (text.includes('!important') && features.num_important > 10) {
-//             decorations["num_important"].push(line.range);
-//         }
-//         if (text.match(/-\bwebkit\b-|-moz-|-ms-|-o-/g)) {
-//             decorations["browser_specific_properties"].push(line.range);
-//         }
-//         if (text.includes('@keyframes') && features.animation_usage > 0) {
-//             decorations["animation_usage"].push(line.range);
-//         }
-//         if (text.includes('*') && features.universal_selectors > 3) {
-//             decorations["universal_selectors"].push(line.range);
-//         }
-//         if (text.includes(' ') && features.excessive_specificity > 3) {
-//             decorations["excessive_specificity"].push(line.range);
-//         }
-//         if (features.duplicate_selectors > 5 && text.includes('{')) {
-//             decorations["duplicate_selectors"].push(line.range);
-//         }
-//         if (features.long_selectors > 5 && text.length > 50) {
-//             decorations["long_selectors"].push(line.range);
-//         }
-//         if (features.excessive_zindex > 3 && text.includes('z-index')) {
-//             decorations["excessive_zindex"].push(line.range);
-//         }
-//         if (features.excessive_font_sizes > 5 && text.includes('font-size')) {
-//             decorations["excessive_font_sizes"].push(line.range);
-//         }
-//     }
-
-//     for (let key in decorations) {
-//         if (decorations[key].length > 0) {
-//             editor.setDecorations(decorationTypes[key], decorations[key]);
-//         }
-//     }
-
-//     vscode.window.showInformationMessage(`✅ Highlighted ${Object.keys(decorations).length} types of code smells.`);
-// }
-
-
-// // **Deactivate Cleanup**
-// export function deactivate() {
-//     console.log("❌ CSS Smell Detector Deactivated");
-// }
-
-
-
 import * as vscode from 'vscode';
 import axios from 'axios';
+import { spawn, ChildProcess } from 'child_process';
+import path from 'path';
+import * as fs from 'fs';
 
-export function activate(context: vscode.ExtensionContext) {
-    console.log("✅ CSS Smell Detector Activated");
 
-    let disposable = vscode.commands.registerCommand('css-smell-detect.analyze', async () => {
-        console.log("🔍 Running Analysis Command");
+// Global variables
+let apiProcess: ChildProcess | null = null;
+const outputChannel = vscode.window.createOutputChannel('CSS Smell Detector');
+let extensionContext: vscode.ExtensionContext | undefined;
 
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showErrorMessage("No CSS file open.");
+// ======================
+// Utility Functions
+// ======================
+
+function getActiveCssEditor(): vscode.TextEditor | undefined {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage('No active editor found');
+        return;
+    }
+    if (editor.document.languageId !== 'css') {
+        vscode.window.showErrorMessage('Active file is not a CSS file');
+        return;
+    }
+    return editor;
+}
+
+function handleError(message: string, error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    outputChannel.appendLine(`${message}: ${errorMessage}`);
+    vscode.window.showErrorMessage(
+        `${message}. See output for details.`,
+        'Open Output'
+    ).then(choice => {
+        if (choice === 'Open Output') {
+            outputChannel.show();
+        }
+    });
+}
+
+// ======================
+// API Management
+// ======================
+
+function startAPI() {
+    if (!apiProcess) {
+        outputChannel.appendLine('Starting Flask API...');
+        if (!extensionContext) {
+            outputChannel.appendLine('Error: Extension context not available');
+            vscode.window.showErrorMessage('Extension context not initialized');
             return;
         }
 
-        const document = editor.document;
-        const cssCode = document.getText();
+        const apiPath = path.join(extensionContext.extensionPath, 'src', 'api', 'css_smell_api.py');
+        outputChannel.appendLine(`API Path: ${apiPath}`);
 
-        console.log("📂 Extracted CSS Code:", cssCode.substring(0, 100) + "...");
-
-        try {
-            console.log("🌍 Sending request to API...");
-            const response = await axios.post('http://127.0.0.1:5000/predict', { css_code: cssCode });
-
-            console.log("✅ API Response:", response.data);
-
-            if (!response.data || !response.data.smells || !response.data.features) {
-                vscode.window.showErrorMessage("API response is invalid.");
-                return;
-            }
-
-            const prediction = response.data.prediction;
-            const smells = response.data.smells || {};
-            const features = response.data.features || {};
-
-            let smellMessages = Object.entries(smells)
-                .map(([smell, count]) => `${smell}: ${count} occurrences`)
-                .join('\n');
-
-            vscode.window.showInformationMessage(`Predicted Smell Level: ${prediction}\n\nDetected Smells:\n${smellMessages}`);
-
-            highlightSmells(editor, smells, features);
-
-        } catch (error) {
-            vscode.window.showErrorMessage("Error connecting to API.");
-            console.error("❌ API Request Failed:", error);
+        if (!fs.existsSync(apiPath)) {
+            const errorMsg = `API file not found at ${apiPath}`;
+            outputChannel.appendLine(errorMsg);
+            vscode.window.showErrorMessage(errorMsg);
+            return;
         }
-    });
 
-    context.subscriptions.push(disposable);
+        apiProcess = spawn("python", [apiPath]);
 
-    // Hover Tooltips for Error Suggestions
-    context.subscriptions.push(
-        vscode.languages.registerHoverProvider('css', {
-            provideHover(document, position) {
-                const range = document.getWordRangeAtPosition(position);
-                if (!range) return;
-                const text = document.getText(range);
+        // Correct way to get the API path
+        // const apiPath = path.join(extension.extensionPath, 'src', 'api', 'css_smell_api.py');
+        // outputChannel.appendLine(`API Path: ${apiPath}`);  // Debug output
 
-                let suggestion = getCssIssueSuggestion(text);
-                if (suggestion) {
-                    return new vscode.Hover(suggestion);
-                }
-            }
-        })
-    );
+         // Verify file exists
+         if (!fs.existsSync(apiPath)) {
+            outputChannel.appendLine(`Error: API file not found at ${apiPath}`);
+            return;
+        }
 
-    // Quick Fix Command
-    let fixCommand = vscode.commands.registerCommand('css-smell-detect.quickFix', () => {
-        vscode.window.showQuickPick([
-            "Replace !important with better specificity",
-            "Convert ID selector to class",
-            "Remove empty class",
-            "Reduce excessive z-index",
-            "Optimize redundant properties"
-        ]).then(selection => {
-            if (selection) {
-                vscode.window.showInformationMessage(`✅ Applied fix: ${selection}`);
+        apiProcess = spawn("python", [apiPath]);
+        // apiProcess = spawn("python", ["D:/Documents/IIT/FYP/CSS-code-smell-extension/src/api/css_smell_api.py"]);
+
+        apiProcess.stdout?.on("data", (data: Buffer) => {
+            outputChannel.appendLine(`API: ${data.toString()}`);
+        });
+
+        apiProcess.stderr?.on("data", (data: Buffer) => {
+            outputChannel.appendLine(`API Error: ${data.toString()}`);
+        });
+
+        apiProcess.on("exit", (code: number | null) => {
+            outputChannel.appendLine(`API exited with code ${code}`);
+            apiProcess = null;
+            if (code !== 0) {
+                setTimeout(startAPI, 2000);
             }
         });
-    });
 
-    context.subscriptions.push(fixCommand);
+        apiProcess.on("error", (err: Error) => {
+            outputChannel.appendLine(`API Error: ${err.message}`);
+            apiProcess = null;
+            setTimeout(startAPI, 2000);
+        });
+    }
+}
 
-        // Register the command
-        context.subscriptions.push(disposable);
+// async function ensureAPIIsRunning(): Promise<void> {
+//     const maxRetries = 3;
+//     for (let i = 0; i < maxRetries; i++) {
+//         try {
+//             await axios.get('http://127.0.0.1:5000/', { timeout: 1000 });
+//             return;
+//         } catch (error) {
+//             if (i === maxRetries - 1) throw error;
+//             startAPI();
+//             await new Promise(resolve => setTimeout(resolve, 2000));
+//         }
+//     }
+// }
 
-        // Listen for document changes and saves
-        context.subscriptions.push(
-            vscode.workspace.onDidChangeTextDocument((event) => {
-                if (event.document.languageId === 'css') {
-                    console.log("📜 CSS Document Changed:", event.document.fileName);
-                    handleDocumentChange(event);
-                }
-            })
-        );
+async function ensureAPIIsRunning(): Promise<void> {
+    const maxRetries = 5;
+    const retryDelay = 2000;
     
-        context.subscriptions.push(
-            vscode.workspace.onDidSaveTextDocument((document) => {
-                if (document.languageId === 'css') {
-                    console.log("💾 CSS Document Saved:", document.fileName);
-                    handleDocumentSave(document);
-                }
-            })
-        );
-    
-}
-
-
-// **Real-Time CSS Analysis (Debounced)**
-let typingTimer: NodeJS.Timeout | null = null;
-async function handleDocumentChange(event: vscode.TextDocumentChangeEvent) {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor || editor.document.languageId !== 'css') return;
-
-    const document = editor.document;
-    const cssCode = document.getText();
-
-    if (!cssCode.trim()) return;
-
-    console.log("✍️ CSS Code Detected:", cssCode.substring(0, 50) + "...");
-
-    // **Debounce Mechanism for Real-Time Analysis**
-    if (typingTimer) clearTimeout(typingTimer);
-    typingTimer = setTimeout(async () => {
-        console.log("🚀 Real-Time API Request Triggered...");
-        await analyzeCSSCode(editor, cssCode);
-    }, 500); // Adjust delay for responsiveness (lower = faster response)
-}
-
-// **Auto-Save Detection**
-async function handleDocumentSave(document: vscode.TextDocument) {
-    if (document.languageId !== 'css') return;
-
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) return;
-
-    const cssCode = document.getText();
-    console.log("💾 Auto-Save Triggered, Analyzing CSS...");
-    await analyzeCSSCode(editor, cssCode);
-}
-
-async function analyzeCSSCode(editor: vscode.TextEditor, cssCode: string) {
-    try {
-        const startTime = Date.now(); // Start time ⏱️
-
-        const response = await axios.post('http://127.0.0.1:5000/predict', { css_code: cssCode });
-
-        const endTime = Date.now(); // End time ⏱️
-        const responseTime = endTime - startTime; // Calculate response time
-
-        console.log(`✅ API Response Time: ${responseTime}ms`);
-
-        if (!response.data || !response.data.smells || !response.data.features) {
-            vscode.window.showErrorMessage("API response is invalid.");
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            await axios.get('http://127.0.0.1:5000/', { timeout: 1000 });
             return;
+        } catch (error) {
+            if (i === 0) startAPI(); // Start API on first attempt
+            
+            if (i === maxRetries - 1) {
+                throw new Error(`Failed to connect to API after ${maxRetries} attempts`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+    }
+}
+
+// ======================
+// CSS Analysis Functions
+// ======================
+
+async function analyzeCss() {
+    try {
+        outputChannel.appendLine('Starting CSS analysis...');
+        const editor = getActiveCssEditor();
+        if (!editor) return;
+
+        const cssCode = editor.document.getText();
+        outputChannel.appendLine('Sending CSS to API...');
+
+        await ensureAPIIsRunning();
+        const response = await axios.post('http://127.0.0.1:5000/predict', {
+            css_code: cssCode
+        }, { timeout: 30000 });
+
+        if (!response.data?.smells) {
+            throw new Error('Invalid API response');
         }
 
-        console.log("✅ API Response Received:", response.data);
-
-        const smells = response.data.smells || {};
-        const features = response.data.features || {};
-
-        vscode.window.showInformationMessage(`Predicted Smell Level: ${response.data.prediction}\nResponse Time: ${responseTime}ms`);
-
-        highlightSmells(editor, smells, features);
+        showAnalysisResults(editor, response.data);
     } catch (error) {
-        console.error("❌ API Request Failed:", error);
+        handleError('Analysis failed', error);
     }
 }
 
+function showAnalysisResults(editor: vscode.TextEditor, data: any) {
+    const { prediction, smells = {}, severity_level = "Unknown" } = data;
+    const severity = severity_level.toLowerCase();
 
-// Detect Common CSS Issues & Provide Fix Suggestions
-function getCssIssueSuggestion(text: string): string | null {
-    if (text.includes('!important')) {
-        return `⚠️ **Avoid Using !important**  
-        ❌ Overuse of \`!important\` makes debugging difficult.  
-        ✅ **Solution**: Use more specific selectors instead.`;
+    let message = `Total Smells: ${prediction}\n\n`;
+    message += Object.entries(smells)
+        .map(([smell, count]) => `${smell}: ${count} occurrences`)
+        .join('\n');
+
+    if (severity === "high") {
+        vscode.window.showErrorMessage(`🚨 High Severity Detected!\n${message}`);
+    } else if (severity === "medium" || severity === "low") {
+        vscode.window.showWarningMessage(`⚠️ ${severity_level} Severity\n${message}`);
+    } else {
+        vscode.window.showInformationMessage(`ℹ️ Analysis Results\n${message}`);
     }
 
-    if (text.startsWith('.') && text.endsWith('{}')) {
-        return `⚠️ **Empty Class Detected**  
-        ❌ The class \`${text}\` is empty.  
-        ✅ **Solution**: Remove it if unnecessary, or add styles.`;
-    }
-
-    if (text.startsWith('#')) {
-        return `⚠️ **Avoid Using IDs for Styling**  
-        ❌ ID selectors have high specificity, making overrides harder.  
-        ✅ **Solution**: Use classes instead (e.g., \`.my-class\`).`;
-    }
-
-    if (text.includes('*')) {
-        return `⚠️ **Avoid Universal Selectors (\`*\`)**  
-        ❌ Universal selectors apply styles to all elements, reducing efficiency.  
-        ✅ **Solution**: Use specific selectors instead.`;
-    }
-
-    if (text.includes('z-index:') && /\d{3,}/.test(text)) {
-        return `⚠️ **High z-index Detected**  
-        ❌ Excessive \`z-index\` values can cause stacking issues.  
-        ✅ **Solution**: Reduce values and use a structured stacking context.`;
-    }
-
-    return null;
+    highlightSmells(editor, smells, data.features || {});
 }
 
-// Highlight Detected CSS Smells
-function highlightSmells(editor: vscode.TextEditor, smells: any, features: any) {
-    const decorationTypes: { [key: string]: vscode.TextEditorDecorationType } = {
-        excessive_nesting: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 0, 0, 0.07)' }),
-        excessive_specificity: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 166, 0, 0.17)' }),
-        num_important: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 255, 0, 0.16)' }),
-        browser_specific_properties: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(14, 255, 14, 0.11)' }),
-        animation_usage: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(0, 0, 255, 0.15)' }),
-        unused_selectors: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(128, 0, 128, 0.5)' }),
-        universal_selectors: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(76, 0, 130, 0.2)' }),
-        duplicate_selectors: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 20, 147, 0.3)' }),
-        long_selectors: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(128, 128, 128, 0.3)' }),
-        excessive_zindex: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(139, 0, 139, 0.3)' }),
-        excessive_font_sizes: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 105, 180, 0.3)' })
+
+// ======================
+// CSS Smells highlight
+//  Functions
+// ======================
+
+function highlightSmells(editor: vscode.TextEditor, smells: Record<string, number>, features: Record<string, number>) {
+    const smellTypes: Record<string, vscode.DecorationOptions[]> = {
+        important: [],
+        deepNesting: [],
+        longSelector: [],
+        universalSelector: [],
+        vendorPrefix: [],
+        inlineStyle: [],
+        highZIndex: [],
+        overqualified: [],
+        duplicate: []
     };
-
-    let decorations: { [key: string]: vscode.Range[] } = {};
-    for (let key in decorationTypes) {
-        decorations[key] = [];
-    }
 
     for (let i = 0; i < editor.document.lineCount; i++) {
         const line = editor.document.lineAt(i);
         const text = line.text;
 
-        if (text.includes('{') && features.excessive_nesting > 5) {
-            decorations["excessive_nesting"].push(line.range);
+        if (text.includes('!important') && features.num_important > 0) {
+            smellTypes.important.push({ range: line.range, hoverMessage: '⚠️ Avoid using !important' });
         }
-        if (text.includes('!important') && features.num_important > 10) {
-            decorations["num_important"].push(line.range);
+
+        if ((text.match(/\{/g) || []).length > 1 && features.deep_nesting > 0) {
+            smellTypes.deepNesting.push({ range: line.range, hoverMessage: '⚠️ Deep nesting detected' });
         }
-        if (text.match(/-\bwebkit\b-|-moz-|-ms-|-o-/g)) {
-            decorations["browser_specific_properties"].push(line.range);
+
+        if (text.length > 100 && features.long_selectors > 0) {
+            smellTypes.longSelector.push({ range: line.range, hoverMessage: '⚠️ Long selector - consider shortening' });
         }
-        if (text.includes('@keyframes') && features.animation_usage > 0) {
-            decorations["animation_usage"].push(line.range);
+
+        if (text.includes('*') && features.universal_selectors > 0) {
+            smellTypes.universalSelector.push({ range: line.range, hoverMessage: '⚠️ Avoid universal selectors (*)' });
         }
-        if (text.includes('*') && features.universal_selectors > 3) {
-            decorations["universal_selectors"].push(line.range);
+
+        if (text.match(/-webkit-|-moz-|-ms-|-o-/g) && features.vendor_prefixes > 0) {
+            smellTypes.vendorPrefix.push({ range: line.range, hoverMessage: '⚠️ Vendor-specific prefixes detected' });
         }
-        if (text.includes(' ') && features.excessive_specificity > 3) {
-            decorations["excessive_specificity"].push(line.range);
+
+        if (text.includes('style=') && features.inline_styles > 0) {
+            smellTypes.inlineStyle.push({ range: line.range, hoverMessage: '⚠️ Inline styles detected' });
         }
-        if (features.duplicate_selectors > 5 && text.includes('{')) {
-            decorations["duplicate_selectors"].push(line.range);
+
+        if (text.match(/z-index\s*:\s*\d+/) && features.excessive_zindex > 0) {
+            smellTypes.highZIndex.push({ range: line.range, hoverMessage: '⚠️ High z-index value' });
+        }
+
+        if ((text.includes('html') || text.includes('body')) && features.overqualified_selectors > 0) {
+            smellTypes.overqualified.push({ range: line.range, hoverMessage: '⚠️ Overqualified selector (html/body)' });
+        }
+
+        if ((text.match(/^[a-zA-Z0-9.#: \[\]=]+(?=\s*\{)/) || []).length > 1 && features.duplicate_selectors > 0) {
+            smellTypes.duplicate.push({ range: line.range, hoverMessage: '⚠️ Possible duplicate selector' });
         }
     }
 
-    for (let key in decorations) {
-        if (decorations[key].length > 0) {
-            editor.setDecorations(decorationTypes[key], decorations[key]);
+    const decorationTypes: Record<string, vscode.TextEditorDecorationType> = {
+        important: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255,0,0,0.1)', border: '1px solid rgba(255,0,0,0.3)' }),
+        deepNesting: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.3)' }),
+        longSelector: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.3)' }),
+        universalSelector: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(0,128,128,0.1)', border: '1px solid rgba(0,128,128,0.3)' }),
+        vendorPrefix: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(70,130,180,0.1)', border: '1px solid rgba(70,130,180,0.3)' }),
+        inlineStyle: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(138,43,226,0.1)', border: '1px solid rgba(138,43,226,0.3)' }),
+        highZIndex: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(169,169,169,0.1)', border: '1px solid rgba(169,169,169,0.3)' }),
+        overqualified: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(220,20,60,0.1)', border: '1px solid rgba(220,20,60,0.3)' }),
+        duplicate: vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255,20,147,0.1)', border: '1px solid rgba(255,20,147,0.3)' })
+    };
+
+    for (const key in smellTypes) {
+        if (smellTypes[key].length > 0) {
+            editor.setDecorations(decorationTypes[key], smellTypes[key]);
         }
     }
 }
 
-// Cleanup when Deactivating
+
+// ======================
+// CSS Optimization Functions
+// ======================
+
+async function optimizeCss() {
+    try {
+        outputChannel.appendLine('Optimizing CSS...');
+        const editor = getActiveCssEditor();
+        if (!editor) return;
+
+        const { document } = editor;
+        const cssCode = document.getText();
+        const optimized = optimizeCssShorthand(cssCode);
+
+        const success = await editor.edit(editBuilder => {
+            editBuilder.replace(
+                new vscode.Range(
+                    document.positionAt(0),
+                    document.positionAt(cssCode.length)
+                ),
+                optimized
+            );
+        });
+
+        if (!success) {
+            throw new Error('Edit operation failed');
+        }
+
+        vscode.window.showInformationMessage('CSS optimized successfully!');
+    } catch (error) {
+        handleError('Optimization failed', error);
+    }
+}
+
+function optimizeCssShorthand(cssCode: string): string {
+    const lines = cssCode.split('\n');
+    const optimizedLines: string[] = [];
+    let currentRule: string | null = null;
+    let properties: Record<string, string> = {};
+
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+
+        if (trimmedLine.endsWith('{')) {
+            if (currentRule) {
+                optimizedLines.push(optimizeRule(currentRule, properties));
+                properties = {};
+            }
+            currentRule = trimmedLine;
+            optimizedLines.push(line);
+        } else if (trimmedLine.endsWith('}')) {
+            if (currentRule) {
+                optimizedLines.push(optimizeRule(currentRule, properties));
+                properties = {};
+            }
+            currentRule = null;
+            optimizedLines.push(line);
+        } else if (currentRule) {
+            const [property, value] = trimmedLine.split(':').map(s => s.trim());
+            if (property && value) {
+                properties[property] = value.replace(';', '');
+            }
+        } else {
+            optimizedLines.push(line);
+        }
+    }
+
+    return optimizedLines.join('\n');
+}
+
+function optimizeRule(rule: string, properties: Record<string, string>): string {
+    const optimized: Record<string, string> = { ...properties };
+
+    // Handle padding
+    if (optimized['padding-top'] && optimized['padding-right'] &&
+        optimized['padding-bottom'] && optimized['padding-left']) {
+        optimized['padding'] = `${optimized['padding-top']} ${optimized['padding-right']} ${optimized['padding-bottom']} ${optimized['padding-left']}`;
+        delete optimized['padding-top'];
+        delete optimized['padding-right'];
+        delete optimized['padding-bottom'];
+        delete optimized['padding-left'];
+    }
+
+    // Handle margin
+    if (optimized['margin-top'] && optimized['margin-right'] &&
+        optimized['margin-bottom'] && optimized['margin-left']) {
+        optimized['margin'] = `${optimized['margin-top']} ${optimized['margin-right']} ${optimized['margin-bottom']} ${optimized['margin-left']}`;
+        delete optimized['margin-top'];
+        delete optimized['margin-right'];
+        delete optimized['margin-bottom'];
+        delete optimized['margin-left'];
+    }
+
+    return Object.entries(optimized)
+        .map(([prop, val]) => `  ${prop}: ${val};`)
+        .join('\n');
+}
+
+// ======================
+// Quick Fix Function
+// ======================
+
+async function quickFix() {
+    try {
+        outputChannel.appendLine('Applying quick fix...');
+        const editor = getActiveCssEditor();
+        if (!editor) return;
+
+        const selection = await vscode.window.showQuickPick([
+            "Replace !important with better specificity",
+            "Convert ID selector to class",
+            "Remove empty class",
+            "Reduce excessive z-index",
+            "Optimize redundant properties"
+        ]);
+
+        if (!selection) return;
+
+        const { document } = editor;
+        const fullText = document.getText();
+        let modifiedText = fullText;
+
+        switch (selection) {
+            case "Replace !important with better specificity":
+                modifiedText = fullText.replace(/!important/g, '');
+                break;
+            case "Convert ID selector to class":
+                modifiedText = fullText.replace(/#([a-zA-Z][\w-]*)(?=[^\w-]|$)/g, '.$1');
+                break;
+            case "Remove empty class":
+                modifiedText = fullText.replace(/\.[a-zA-Z][\w-]*\s*\{\s*\}/g, '');
+                break;
+            case "Reduce excessive z-index":
+                modifiedText = fullText.replace(/z-index:\s*\d{3,}/g, 'z-index: 10');
+                break;
+            case "Optimize redundant properties":
+                modifiedText = optimizeCssShorthand(fullText);
+                break;
+        }
+
+        const success = await editor.edit(editBuilder => {
+            editBuilder.replace(
+                new vscode.Range(
+                    document.positionAt(0),
+                    document.positionAt(fullText.length)
+                ),
+                modifiedText
+            );
+        });
+
+        if (!success) {
+            throw new Error('Edit operation failed');
+        }
+
+        vscode.window.showInformationMessage(`Applied fix: ${selection}`);
+    } catch (error) {
+        handleError('Quick fix failed', error);
+    }
+}
+
+// ======================
+// Extension Activation
+// ======================
+
+export function activate(context: vscode.ExtensionContext) {
+
+    // Store context globally
+    extensionContext = context;
+
+    outputChannel.appendLine('Extension activated');
+    
+    // Start API with proper context
+    startAPI();
+
+    // outputChannel.appendLine('Extension activated');
+    // startAPI();
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('css-smell-detect.analyze', analyzeCss),
+        vscode.commands.registerCommand('css-smell-detect.optimize', optimizeCss),
+        vscode.commands.registerCommand('css-smell-detect.quickFix', quickFix),
+        outputChannel
+    );
+}
 export function deactivate() {
-    console.log("❌ CSS Smell Detector Deactivated");
+    if (apiProcess) {
+        apiProcess.kill();
+    }
+    outputChannel.dispose();
 }
