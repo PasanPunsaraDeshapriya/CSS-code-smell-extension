@@ -122,7 +122,7 @@ async function ensureAPIIsRunning() {
     const retryDelay = 2000;
     for (let i = 0; i < maxRetries; i++) {
         try {
-            await axios_1.default.get('http://127.0.0.1:5000/', { timeout: 1000 });
+            await axios_1.default.get('http://127.0.0.1:5000/', { timeout: 5000 });
             return;
         }
         catch (error) {
@@ -205,7 +205,7 @@ async function analyzeCss() {
         const cssCode = editor.document.getText();
         const response = await axios_1.default.post('http://127.0.0.1:5000/predict', {
             css_code: cssCode
-        }, { timeout: 30000 });
+        }, { timeout: 120000 });
         if (!response.data?.smells) {
             throw new Error('Invalid API response');
         }
@@ -233,14 +233,21 @@ function showAnalysisResults(editor, data, responseTime) {
     statusBarItem.show();
     // Hide after 5 seconds
     setTimeout(() => statusBarItem.dispose(), 5000);
-    if (severity === "high") {
-        vscode.window.showErrorMessage(`🚨 High Severity (${responseTime}ms)\n${message}`);
-    }
-    else if (severity === "medium" || severity === "low") {
-        vscode.window.showWarningMessage(`⚠️ ${severity_level} Severity (${responseTime}ms)\n${message}`);
-    }
-    else {
-        vscode.window.showInformationMessage(`ℹ️ Analysis Results (${responseTime}ms)\n${message}`);
+    switch (severity) {
+        case "high":
+            vscode.window.showErrorMessage(`🚨 High Severity (${responseTime}ms)\n${message}`);
+            break;
+        case "medium":
+            vscode.window.showWarningMessage(`⚠️ Medium Severity (${responseTime}ms)\n${message}`);
+            break;
+        case "low":
+            vscode.window.showInformationMessage(`☑️ Low Severity (${responseTime}ms)\n${message}`);
+            break;
+        case "clean":
+            vscode.window.showInformationMessage(`✅ CSS is clean! (${responseTime}ms)\n${message}`);
+            break;
+        default:
+            vscode.window.showInformationMessage(`ℹ️ Smell Analysis (${responseTime}ms)\n${message}`);
     }
     highlightSmells(editor, smells, data.features || {});
     if (lastAnalysisTime !== undefined) {
