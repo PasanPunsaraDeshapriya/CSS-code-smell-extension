@@ -23,9 +23,9 @@ SCALER_PATH    = r"D:\Documents\IIT\FYP\CSS-code-smell-Others\API\test\css_scale
 KMEANS_PATH    = r"D:\Documents\IIT\FYP\CSS-code-smell-Others\API\test\css_kmeans.pkl"
 
 try:
-    clf = joblib.load(PREDICTOR_PATH)     # 👈 Correct: RandomForestRegressor
-    scaler = joblib.load(SCALER_PATH)     # 👈 Correct: StandardScaler
-    kmeans = joblib.load(KMEANS_PATH)     # 👈 Correct: KMeans
+    clf = joblib.load(PREDICTOR_PATH)     # RandomForestRegressor
+    scaler = joblib.load(SCALER_PATH)     # StandardScaler
+    kmeans = joblib.load(KMEANS_PATH)     # KMeans
     print("✅ All models loaded successfully")
 except Exception as e:
     print(f"❌ Model loading failed: {e}")
@@ -106,12 +106,12 @@ def predict():
         if not css_code.strip():
             return jsonify({"error": "No CSS code provided", "features": {}, "smells": {}}), 400
 
-        # 1. Extract features
+        #Extract features
         feature_list, feature_dict = extract_features_from_css(css_code)
         if not feature_list or not feature_dict:
             return jsonify({"error": "Feature extraction failed", "features": {}, "smells": {}}), 500
 
-        # 2. Prepare DataFrame
+        #Prepare DataFrame
         feature_names = [
             "nesting_depth", "num_ids", "num_classes", "num_important", 
             "duplicate_selectors", "total_rules", "deep_nesting", "long_selectors", 
@@ -122,7 +122,7 @@ def predict():
         ]
         feature_df = pd.DataFrame([feature_list], columns=feature_names)
 
-        # ✅✅ 3. SCALE with the SCALER (not the model!)
+        #SCALE with the SCALER (not the model!)
         if scaler is not None:
             print("SCALER TYPE:", type(scaler))
             # scaled_features = scaler.transform(feature_df)
@@ -133,10 +133,10 @@ def predict():
         else:
             scaled_features = feature_df.values
 
-        # ✅ 4. Predict smell count
+        #Predict smell count
         predicted_smells = clf.predict(scaled_features)[0]
 
-        # ✅ 5. Cluster prediction
+        #Cluster prediction
         if kmeans is not None:
             cluster = kmeans.predict(scaled_features)[0]
             severity_label = cluster_to_severity.get(cluster, "Unknown")
